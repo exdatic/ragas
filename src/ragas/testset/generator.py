@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import logging
+import os
 import typing as t
 from dataclasses import dataclass
 from random import choices
 
 import pandas as pd
 from datasets import Dataset
-from langchain_openai.chat_models import ChatOpenAI
-from langchain_openai.embeddings import OpenAIEmbeddings
+from langchain_openai.chat_models import ChatOpenAI, AzureChatOpenAI
+from langchain_openai.embeddings import OpenAIEmbeddings, AzureOpenAIEmbeddings
 
 from ragas._analytics import TesetGenerationEvent, track
 from ragas.embeddings.base import BaseRagasEmbeddings, LangchainEmbeddingsWrapper
@@ -79,11 +80,20 @@ class TestsetGenerator:
         docstore: t.Optional[DocumentStore] = None,
         chunk_size: int = 512,
     ) -> "TestsetGenerator":
-        generator_llm_model = LangchainLLMWrapper(ChatOpenAI(model=generator_llm))
-        critic_llm_model = LangchainLLMWrapper(ChatOpenAI(model=critic_llm))
-        embeddings_model = LangchainEmbeddingsWrapper(
-            OpenAIEmbeddings(model=embeddings)
-        )
+        if os.environ.get("OPENAI_API_TYPE") == "azure":
+            generator_llm_model = LangchainLLMWrapper(AzureChatOpenAI(model=generator_llm,
+                                                                      azure_deployment=generator_llm))
+            critic_llm_model = LangchainLLMWrapper(AzureChatOpenAI(model=critic_llm,
+                                                                   azure_deployment=generator_llm))
+            embeddings_model = LangchainEmbeddingsWrapper(
+                AzureOpenAIEmbeddings(model=embeddings)
+            )
+        else:
+            generator_llm_model = LangchainLLMWrapper(ChatOpenAI(model=generator_llm))
+            critic_llm_model = LangchainLLMWrapper(ChatOpenAI(model=critic_llm))
+            embeddings_model = LangchainEmbeddingsWrapper(
+                OpenAIEmbeddings(model=embeddings)
+            )
         keyphrase_extractor = KeyphraseExtractor(llm=generator_llm_model)
         if docstore is None:
             from langchain.text_splitter import TokenTextSplitter
