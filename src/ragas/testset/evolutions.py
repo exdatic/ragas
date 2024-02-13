@@ -44,6 +44,7 @@ class DataRow(BaseModel):
     contexts: t.List[str]
     ground_truth: str
     evolution_type: str
+    filenames: t.List[str]
 
 
 @dataclass
@@ -210,6 +211,7 @@ class Evolution:
             contexts=[n.page_content for n in current_nodes.nodes],
             ground_truth="" if answer is None else answer,
             evolution_type=evolution_type,
+            filenames=[n.filename if n.filename else n.doc_id for n in current_nodes.nodes],
         )
 
     def adapt(self, language: str, cache_dir: t.Optional[str] = None) -> None:
